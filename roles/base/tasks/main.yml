@@ -70,14 +70,6 @@
     state: present
   notify: Restart sshd
 
-- name: Set SSH port
-  lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: "^#?Port"
-    line: "Port {{ ssh_port }}"
-    state: present
-  notify: Restart sshd
-
 - name: Enable SSH public key authentication
   lineinfile:
     path: /etc/ssh/sshd_config
