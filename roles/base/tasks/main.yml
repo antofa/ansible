@@ -1,0 +1,105 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Upgrade all packages
+  apt:
+    upgrade: dist
+    autoremove: true
+    autoclean: true
+
+- name: Install essential packages
+  apt:
+    name:
+      # HTTP requests from CLI
+      - curl
+      # Download files
+      - wget
+      # GPG key management (needed for repos)
+      - gnupg
+      # Distribution info
+      - lsb-release
+      # System resource monitor
+      - btop
+      # Disk usage analyzer
+      - ncdu
+      # Terminal multiplexer (persistent SSH sessions)
+      - tmux
+      # JSON parser for CLI
+      - jq
+      # Version control
+      - git
+      # Archive utilities
+      - zip
+      - unzip
+      # Fast text search (grep replacement)
+      - ripgrep
+      # Log rotation
+      - logrotate
+      # Network tools (ifconfig, netstat)
+      - net-tools
+    state: present
+
+- name: Install fail2ban
+  apt:
+    name: fail2ban
+    state: present
+
+- name: Enable and start fail2ban
+  systemd:
+    name: fail2ban
+    enabled: true
+    state: started
+
+- name: Configure fail2ban jail
+  template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart fail2ban
+
+- name: Disable SSH password authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PasswordAuthentication"
+    line: "PasswordAuthentication no"
+    state: present
+  notify: Restart sshd
+
+- name: Set SSH port
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?Port"
+    line: "Port {{ ssh_port }}"
+    state: present
+  notify: Restart sshd
+
+- name: Enable SSH public key authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PubkeyAuthentication"
+    line: "PubkeyAuthentication yes"
+    state: present
+  notify: Restart sshd
+
+- name: Disable SSH root login with password
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PermitRootLogin"
+    line: "PermitRootLogin prohibit-password"
+    state: present
+  notify: Restart sshd
+
+- name: Add ll alias to bashrc
+  lineinfile:
+    path: /root/.bashrc
+    line: "alias ll='ls -alF'"
+    state: present
+    create: true
+    owner: root
+    group: root
+    mode: '0644'

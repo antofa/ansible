@@ -1,0 +1,61 @@
+---
+- name: Install UFW
+  apt:
+    name: ufw
+    state: present
+
+- name: Set UFW default policy - deny incoming
+  ufw:
+    direction: incoming
+    default: deny
+
+- name: Set UFW default policy - allow outgoing
+  ufw:
+    direction: outgoing
+    default: allow
+
+- name: Allow SSH on custom port
+  ufw:
+    rule: allow
+    port: "{{ ssh_port }}"
+    proto: tcp
+
+- name: Allow SSH on default port (for transition)
+  ufw:
+    rule: allow
+    port: '22'
+    proto: tcp
+
+- name: Allow HTTP
+  ufw:
+    rule: allow
+    port: '80'
+    proto: tcp
+
+- name: Allow HTTPS
+  ufw:
+    rule: allow
+    port: '443'
+    proto: tcp
+
+- name: Allow tinyproxy port
+  ufw:
+    rule: allow
+    port: "{{ proxy_port }}"
+    proto: tcp
+
+- name: Allow Syncthing GUI
+  ufw:
+    rule: allow
+    port: '8384'
+    proto: tcp
+
+- name: Allow Syncthing sync
+  ufw:
+    rule: allow
+    port: '22000'
+    proto: tcp
+
+- name: Enable UFW
+  ufw:
+    state: enabled

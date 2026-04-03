@@ -1,0 +1,73 @@
+---
+- name: Add Syncthing GPG key
+  apt_key:
+    url: https://syncthing.net/release-key.gpg
+    keyring: /etc/apt/keyrings/syncthing-archive-keyring.gpg
+    state: present
+
+- name: Add Syncthing repository
+  apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/syncthing-archive-keyring.gpg] https://apt.syncthing.net/ syncthing stable-v2"
+    state: present
+    filename: syncthing
+
+- name: Update apt cache after adding Syncthing repo
+  apt:
+    update_cache: true
+
+- name: Install Syncthing
+  apt:
+    name: syncthing
+    state: present
+
+- name: Generate Syncthing config for appuser
+  become_user: "{{ appuser }}"
+  command: >
+    syncthing generate
+    --gui-user="{{ syncthing_gui_user }}"
+    --gui-password="{{ syncthing_gui_pass }}"
+  args:
+    creates: "/home/{{ appuser }}/.config/syncthing/config.xml"
+
+- name: Enable and start Syncthing for appuser
+  systemd:
+    name: "syncthing@{{ appuser }}"
+    enabled: true
+    state: started
+
+- name: Wait for Syncthing API
+  uri:
+    url: "http://127.0.0.1:8384/rest/system/ping"
+    status_code: 200
+  register: syncthing_ping
+  retries: 10
+  delay: 3
+  until: syncthing_ping is succeeded
+
+- name: Read Syncthing API key
+  slurp:
+    src: "/home/{{ appuser }}/.config/syncthing/config.xml"
+  register: syncthing_config
+
+- name: Extract API key from config
+  set_fact:
+    syncthing_api_key: "{{ (syncthing_config.content | b64decode | regex_search('<apikey>(.+?)</apikey>', '\\1'))[0] }}"
+
+- name: Add sync folder via API
+  uri:
+    url: "http://127.0.0.1:8384/rest/system/config/folders/sync"
+    method: PUT
+    body_format: json
+    body:
+      id: sync
+      label: "App Sync"
+      path: "/home/{{ appuser }}/sync"
+      type: "sendreceive"
+      rescanIntervalS: 3600
+      fsWatcherEnabled: true
+      fsWatcherDelayS: 10
+      ignorePerms: false
+      autoNormalize: true
+    headers:
+      X-API-Key: "{{ syncthing_api_key }}"
+    status_code: 200

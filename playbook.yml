@@ -1,0 +1,22 @@
+---
+- name: Debian Server Setup
+  hosts: target
+  gather_facts: true
+
+  roles:
+    - role: base
+      tags: [base]
+    - role: appuser
+      tags: [appuser]
+    - role: firewall
+      tags: [firewall]
+    - role: nginx
+      tags: [nginx]
+    - role: ssl
+      tags: [ssl]
+    - role: tinyproxy
+      tags: [tinyproxy]
+    - role: docker
+      tags: [docker]
+    - role: syncthing
+      tags: [syncthing]

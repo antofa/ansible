@@ -1,0 +1,62 @@
+---
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: present
+
+- name: Enable and start Nginx
+  systemd:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: Create website directory
+  file:
+    path: "/var/www/{{ domain }}/html"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Create test index.html
+  copy:
+    dest: "/var/www/{{ domain }}/html/index.html"
+    content: |
+      <!DOCTYPE html>
+      <html>
+      <head><title>{{ domain }}</title></head>
+      <body><h1>Welcome to {{ domain }}</h1></body>
+      </html>
+    owner: www-data
+    group: www-data
+    mode: '0644'
+
+- name: Create acme-challenge directory
+  file:
+    path: /var/www/letsencrypt/.well-known/acme-challenge
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Deploy Nginx site config (HTTP only)
+  template:
+    src: site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ domain }}"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload nginx
+
+- name: Enable Nginx site
+  file:
+    src: "/etc/nginx/sites-available/{{ domain }}"
+    dest: "/etc/nginx/sites-enabled/{{ domain }}"
+    state: link
+  notify: Reload nginx
+
+- name: Remove default Nginx site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx

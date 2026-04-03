@@ -1,0 +1,57 @@
+---
+- name: Create appuser
+  user:
+    name: "{{ appuser }}"
+    shell: /bin/bash
+    create_home: true
+    groups: []
+
+- name: Create app directory
+  file:
+    path: "/home/{{ appuser }}/app"
+    state: directory
+    owner: "{{ appuser }}"
+    group: "{{ appuser }}"
+    mode: '0755'
+
+- name: Create logs directory
+  file:
+    path: "/home/{{ appuser }}/logs"
+    state: directory
+    owner: "{{ appuser }}"
+    group: "{{ appuser }}"
+    mode: '0755'
+
+- name: Create sync/state directory
+  file:
+    path: "/home/{{ appuser }}/sync/state"
+    state: directory
+    owner: "{{ appuser }}"
+    group: "{{ appuser }}"
+    mode: '0755'
+
+- name: Create sync/env directory
+  file:
+    path: "/home/{{ appuser }}/sync/env"
+    state: directory
+    owner: "{{ appuser }}"
+    group: "{{ appuser }}"
+    mode: '0755'
+
+- name: Create symlink sync/logs -> logs
+  file:
+    src: "/home/{{ appuser }}/logs"
+    dest: "/home/{{ appuser }}/sync/logs"
+    state: link
+    owner: "{{ appuser }}"
+    group: "{{ appuser }}"
+
+- name: Add ll alias to appuser bashrc
+  lineinfile:
+    path: "/home/{{ appuser }}/.bashrc"
+    line: "alias ll='ls -alF'"
+    state: present
+    create: true
+    owner: "{{ appuser }}"
+    group: "{{ appuser }}"
+    mode: '0644'

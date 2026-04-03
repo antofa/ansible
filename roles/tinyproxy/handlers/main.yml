@@ -1,0 +1,5 @@
+---
+- name: Restart tinyproxy
+  systemd:
+    name: tinyproxy
+    state: restarted

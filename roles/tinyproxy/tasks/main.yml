@@ -1,0 +1,27 @@
+---
+- name: Install tinyproxy
+  apt:
+    name: tinyproxy
+    state: present
+
+- name: Backup original tinyproxy config
+  copy:
+    src: /etc/tinyproxy/tinyproxy.conf
+    dest: /etc/tinyproxy/tinyproxy.conf.bak
+    remote_src: true
+    force: false
+
+- name: Deploy tinyproxy config
+  template:
+    src: tinyproxy.conf.j2
+    dest: /etc/tinyproxy/tinyproxy.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart tinyproxy
+
+- name: Enable and start tinyproxy
+  systemd:
+    name: tinyproxy
+    enabled: true
+    state: started

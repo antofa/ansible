@@ -1,0 +1,6 @@
+---
+tp_user: PROXY_USER
+tp_pass: PROXY_PASS
+
+syncthing_gui_user: admin
+syncthing_gui_pass: CHANGEME
