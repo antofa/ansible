@@ -10,7 +10,6 @@
   register: amnezia_phase1
   failed_when: false
   changed_when: true
-  ignore_unreachable: yes
 
 - name: Reboot after phase 1
   reboot:
@@ -18,18 +17,19 @@
     connect_timeout: 5
     reboot_timeout: 300
     pre_reboot_delay: 5
-  when: amnezia_phase1.rc == 0
+  when: amnezia_phase1.rc is defined and amnezia_phase1.rc == 0
 
 - name: Wait for server to come back
   wait_for_connection:
     timeout: 300
+  when: amnezia_phase1.rc is defined and amnezia_phase1.rc == 0
 
 - name: Run AmneziaWG installer (phase 2 — kernel modules)
   command: bash /root/install_amneziawg.sh --yes --route-all --port={{ amnezia_port }}
   register: amnezia_phase2
   failed_when: false
   changed_when: true
-  ignore_unreachable: yes
+  when: amnezia_phase1.rc is defined and amnezia_phase1.rc == 0
 
 - name: Reboot after phase 2
   reboot:
@@ -37,24 +37,26 @@
     connect_timeout: 5
     reboot_timeout: 300
     pre_reboot_delay: 5
-  when: amnezia_phase2.rc == 0
+  when: amnezia_phase2.rc is defined and amnezia_phase2.rc == 0
 
 - name: Wait for server to come back
   wait_for_connection:
     timeout: 300
+  when: amnezia_phase2.rc is defined and amnezia_phase2.rc == 0
 
 - name: Run AmneziaWG installer (phase 3 — final)
   command: bash /root/install_amneziawg.sh --yes --route-all --port={{ amnezia_port }}
   register: amnezia_phase3
   failed_when: false
   changed_when: true
-  ignore_unreachable: yes
+  when: amnezia_phase2.rc is defined and amnezia_phase2.rc == 0
 
 - name: Verify AmneziaWG service is running
   systemd:
     name: "awg-quick@awg0"
     state: started
     enabled: true
+  ignore_errors: true
 
 - name: Create directory for client configs on deployer
   delegate_to: localhost
