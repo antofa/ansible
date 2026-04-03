@@ -10,6 +10,7 @@
   register: amnezia_phase1
   failed_when: false
   changed_when: true
+  ignore_unreachable: yes
 
 - name: Reboot after phase 1
   reboot:
@@ -28,6 +29,7 @@
   register: amnezia_phase2
   failed_when: false
   changed_when: true
+  ignore_unreachable: yes
 
 - name: Reboot after phase 2
   reboot:
@@ -46,6 +48,7 @@
   register: amnezia_phase3
   failed_when: false
   changed_when: true
+  ignore_unreachable: yes
 
 - name: Verify AmneziaWG service is running
   systemd:
