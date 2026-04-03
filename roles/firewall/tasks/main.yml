@@ -44,6 +44,12 @@
     port: "{{ proxy_port }}"
     proto: tcp
 
+- name: Allow AmneziaWG port
+  ufw:
+    rule: allow
+    port: "{{ amnezia_port }}"
+    proto: udp
+
 - name: Allow Syncthing GUI
   ufw:
     rule: allow

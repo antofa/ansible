@@ -10,3 +10,10 @@ admin_email: "admin@{{ domain }}"
 
 # App user
 appuser: yoda
+
+# AmneziaWG VPN
+amnezia_port: 39743
+amnezia_configs_dir: /root/amnezia_configs
+amnezia_client_names:
+  - my_phone
+  - my_laptop

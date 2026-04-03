@@ -23,19 +23,19 @@ ansible/
 ├── .vault-pass                # Vault password file (NEVER commit to git)
 ├── .gitignore               # Excludes .vault-pass from git
 ├── prepare-deployer.sh      # One-time deployer setup (ansible + per-target SSH key)
-├── deploy.sh                # Run provisioning: `basic` or `full`
+├── deploy.sh                # Run provisioning: `basic`, `vpn`, or `full`
 ├── README.md                # This file
 ├── AGENTS.md                # Instructions for AI agents
 └── roles/
     ├── base/                # apt upgrade, 14 utils, fail2ban, SSH hardening
     ├── appuser/             # App user + directory structure
     ├── firewall/            # UFW (configurable SSH/proxy ports)
+    ├── amnezia/             # AmneziaWG 2.0 VPN with DPI bypass (auto junk packets)
     ├── nginx/               # Nginx HTTP only (port 80, test page)
     ├── ssl/                 # Let's Encrypt SSL certificate
     ├── tinyproxy/           # HTTP proxy with BasicAuth (configurable port)
     ├── docker/              # Docker installation
-    ├── syncthing/           # Syncthing for appuser + auto-add sync folder via API
-    └── appuser/             # App user (no sudo, no SSH) + app/logs/sync dirs
+    └── syncthing/           # Syncthing for appuser + auto-add sync folder via API
 ```
 
 ## Quick Start
@@ -63,6 +63,13 @@ domain: example.com         # Domain for Nginx + SSL
 domain_www: "www.{{ domain }}"
 admin_email: "admin@{{ domain }}"
 appuser: appuser            # Application user (no sudo, no SSH)
+
+# AmneziaWG VPN
+amnezia_port: 39743         # VPN UDP port
+amnezia_configs_dir: /root/amnezia_configs  # Where to fetch client configs
+amnezia_client_names:       # Client names to generate configs for
+  - my_phone
+  - my_laptop
 ```
 
 **`group_vars/vault.yml`** — secrets (NEVER commit to git):
@@ -108,6 +115,9 @@ The script will:
 # Full setup (all roles)
 ./deploy.sh full
 
+# VPN setup (base + appuser + amnezia + firewall)
+./deploy.sh vpn
+
 # Basic setup (base + appuser + firewall only)
 ./deploy.sh basic
 ```
@@ -142,6 +152,50 @@ Exit back to root:
 exit
 ```
 
+### AmneziaWG VPN
+
+The `amnezia` role installs **AmneziaWG 2.0** — a WireGuard fork with traffic obfuscation that bypasses DPI blocks. All junk packet parameters (Jc, Jmin, Jmax, S1-S4, H1-H4, I1-I5) are generated automatically by the installer.
+
+**Installation process:**
+The installer requires 2 reboots. Ansible handles this automatically with 3 phases:
+1. Phase 1: Initial setup → reboot
+2. Phase 2: Kernel modules → reboot
+3. Phase 3: Final configuration
+
+Total time: ~15-20 minutes.
+
+**Client configs:**
+After installation, client files are fetched to the deployer at `{{ amnezia_configs_dir }}/{{ target_host }}_`:
+- `my_phone.conf` — import into AmneziaWG for Windows
+- `my_phone.vpnuri` — `vpn://` URI for AmneziaVPN client
+- `my_phone.png` — QR code for mobile devices
+
+**Import into AmneziaVPN:**
+1. Copy `.vpnuri` file content to your device
+2. Open AmneziaVPN → "Add VPN" → "Paste from clipboard"
+
+**Import via QR code:**
+1. Download `.png` file from deployer
+2. Open AmneziaVPN → "Add VPN" → "Scan QR code"
+
+**Manage clients on target server:**
+```bash
+# Add a new client
+sudo bash /root/awg/manage_amneziawg.sh add new_device
+
+# List all clients
+sudo bash /root/awg/manage_amneziawg.sh list
+
+# Remove a client
+sudo bash /root/awg/manage_amneziawg.sh remove new_device
+
+# Regenerate all config files
+sudo bash /root/awg/manage_amneziawg.sh regen
+
+# Check server status
+sudo bash /root/awg/manage_amneziawg.sh check
+```
+
 ### Syncthing
 
 Access the GUI at `http://<target_ip>:8384`. The sync folder `/home/appuser/sync` is added automatically.
@@ -164,6 +218,7 @@ Run specific roles only:
 ansible-playbook -i inventory.yml playbook.yml --tags "base,appuser"
 ansible-playbook -i inventory.yml playbook.yml --tags "nginx,ssl"
 ansible-playbook -i inventory.yml playbook.yml --tags "tinyproxy"
+ansible-playbook -i inventory.yml playbook.yml --tags "amnezia"
 ansible-playbook -i inventory.yml playbook.yml --tags "syncthing"
 ```
 
@@ -202,7 +257,7 @@ The `vault.yml.example` file is a template with placeholders — safe to commit.
 ## Role execution order
 
 ```
-base → appuser → firewall → nginx → ssl → tinyproxy → docker → syncthing
+base → appuser → firewall → amnezia → nginx → ssl → tinyproxy → docker → syncthing
 ```
 
 Each role is idempotent — safe to run multiple times.

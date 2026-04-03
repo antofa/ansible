@@ -1,0 +1,5 @@
+---
+- name: Restart AmneziaWG
+  systemd:
+    name: "awg-quick@awg0"
+    state: restarted

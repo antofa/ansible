@@ -1,0 +1,85 @@
+---
+- name: Download AmneziaWG installer
+  get_url:
+    url: https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/install_amneziawg.sh
+    dest: /root/install_amneziawg.sh
+    mode: '0755'
+
+- name: Run AmneziaWG installer (phase 1 — initial setup)
+  command: bash /root/install_amneziawg.sh --yes --route-all --port={{ amnezia_port }}
+  register: amnezia_phase1
+  failed_when: false
+  changed_when: true
+
+- name: Reboot after phase 1
+  reboot:
+    msg: "Rebooting for AmneziaWG phase 2"
+    connect_timeout: 5
+    reboot_timeout: 300
+    pre_reboot_delay: 5
+  when: amnezia_phase1.rc == 0
+
+- name: Wait for server to come back
+  wait_for_connection:
+    timeout: 300
+
+- name: Run AmneziaWG installer (phase 2 — kernel modules)
+  command: bash /root/install_amneziawg.sh --yes --route-all --port={{ amnezia_port }}
+  register: amnezia_phase2
+  failed_when: false
+  changed_when: true
+
+- name: Reboot after phase 2
+  reboot:
+    msg: "Rebooting for AmneziaWG phase 3"
+    connect_timeout: 5
+    reboot_timeout: 300
+    pre_reboot_delay: 5
+  when: amnezia_phase2.rc == 0
+
+- name: Wait for server to come back
+  wait_for_connection:
+    timeout: 300
+
+- name: Run AmneziaWG installer (phase 3 — final)
+  command: bash /root/install_amneziawg.sh --yes --route-all --port={{ amnezia_port }}
+  register: amnezia_phase3
+  failed_when: false
+  changed_when: true
+
+- name: Verify AmneziaWG service is running
+  systemd:
+    name: "awg-quick@awg0"
+    state: started
+    enabled: true
+
+- name: Create directory for client configs on deployer
+  delegate_to: localhost
+  file:
+    path: "{{ amnezia_configs_dir }}"
+    state: directory
+    mode: '0700'
+
+- name: Fetch client config files (.conf)
+  fetch:
+    src: "/root/awg/{{ item }}"
+    dest: "{{ amnezia_configs_dir }}/{{ inventory_hostname }}_{{ item }}"
+    flat: true
+  loop: "{{ amnezia_client_names | map('regex_replace', '$', '.conf') | list }}"
+  ignore_errors: true
+
+- name: Fetch client config files (.vpnuri)
+  fetch:
+    src: "/root/awg/{{ item }}"
+    dest: "{{ amnezia_configs_dir }}/{{ inventory_hostname }}_{{ item }}"
+    flat: true
+  loop: "{{ amnezia_client_names | map('regex_replace', '$', '.vpnuri') | list }}"
+  ignore_errors: true
+
+- name: Fetch client config files (.png QR codes)
+  fetch:
+    src: "/root/awg/{{ item }}"
+    dest: "{{ amnezia_configs_dir }}/{{ inventory_hostname }}_{{ item }}"
+    flat: true
+  loop: "{{ amnezia_client_names | map('regex_replace', '$', '.png') | list }}"
+  ignore_errors: true

@@ -10,6 +10,8 @@
       tags: [appuser]
     - role: firewall
       tags: [firewall]
+    - role: amnezia
+      tags: [amnezia]
     - role: nginx
       tags: [nginx]
     - role: ssl

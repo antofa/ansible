@@ -10,13 +10,18 @@ case "$MODE" in
         echo "=== Basic target setup (base + appuser + firewall) ==="
         ansible-playbook -i "$SCRIPT_DIR/inventory.yml" "$SCRIPT_DIR/playbook.yml" --tags "base,appuser,firewall"
         ;;
+    vpn)
+        echo "=== VPN target setup (base + appuser + amnezia + firewall) ==="
+        ansible-playbook -i "$SCRIPT_DIR/inventory.yml" "$SCRIPT_DIR/playbook.yml" --tags "base,appuser,amnezia,firewall"
+        ;;
     full)
         echo "=== Full target setup ==="
         ansible-playbook -i "$SCRIPT_DIR/inventory.yml" "$SCRIPT_DIR/playbook.yml"
         ;;
     *)
-        echo "Usage: $0 [basic|full]"
+        echo "Usage: $0 [basic|vpn|full]"
         echo "  basic — updates, fail2ban, firewall only"
+        echo "  vpn   — base + appuser + amnezia + firewall"
         echo "  full  — everything (nginx, tinyproxy, docker, syncthing)"
         exit 1
         ;;
